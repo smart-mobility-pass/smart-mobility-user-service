@@ -17,9 +17,10 @@ public class UserController {
     public ResponseEntity<User> register(@RequestBody UserRegistrationDTO dto) {
         return ResponseEntity.ok(userService.registerUser(dto));
     }
-
     @GetMapping("/{id}")
     public ResponseEntity<User> getUser(@PathVariable Long id) {
-        return userService.getUserById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+
+        User user = userService.getUserById(id);
+        return ResponseEntity.ok(user);
     }
 }

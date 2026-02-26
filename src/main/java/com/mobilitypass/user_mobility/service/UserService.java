@@ -10,7 +10,6 @@ import java.util.Optional;
 public interface UserService {
     // Gestion Utilisateur
     User registerUser(UserRegistrationDTO dto);
-    Optional<User> getUserById(Long id);
-    MobilityPass activatePass(Long userId);
+    User getUserById(Long id);    MobilityPass activatePass(Long userId);
     void changePassStatus(Long userId, String status);
 }

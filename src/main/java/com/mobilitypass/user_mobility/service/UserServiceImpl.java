@@ -3,6 +3,7 @@ package com.mobilitypass.user_mobility.service;
 import com.mobilitypass.user_mobility.beans.MobilityPass;
 import com.mobilitypass.user_mobility.beans.User;
 import com.mobilitypass.user_mobility.dto.UserRegistrationDTO;
+import com.mobilitypass.user_mobility.error.ResourceNotFoundException;
 import com.mobilitypass.user_mobility.repository.MobilityPassRepository;
 import com.mobilitypass.user_mobility.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -32,8 +33,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Optional<User> getUserById(Long id) {
-        return userRepository.findById(id);
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec l'ID : " + id));
     }
 
     @Override
