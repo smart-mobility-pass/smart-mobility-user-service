@@ -79,6 +79,7 @@ public class UserServiceImpl implements UserService {
         MobilityPass pass = passService.getUserPass(keycloakId);
         List<Subscriptions> activeSubs = subRepository.findByUserIdAndStatus(keycloakId, "ACTIVE");
 
+        /// TODO: Gerer abonnement de type type différent (ex: 20% sur TER, 10% sur BRT, etc.) en fonction du type de pass et des règles métier
         Double discount = activeSubs.stream()
                 .map(Subscriptions::getDiscountPercentage)
                 .findFirst().orElse(0.0);
