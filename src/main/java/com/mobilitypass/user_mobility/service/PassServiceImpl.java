@@ -7,10 +7,13 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
+/**
+ * Implémentation du service MobilityPass.
+ * Assure le suivi de la validité du pass et de la consommation journalière de
+ * l'utilisateur.
+ */
 @Service
 @Transactional
 public class PassServiceImpl implements PassService {
@@ -18,34 +21,33 @@ public class PassServiceImpl implements PassService {
     private MobilityPassRepository passRepository;
 
     @Override
-    public MobilityPass activatePass(Long userId) {
+    public MobilityPass activatePass(String userId) {
         return passRepository.findByUserId(userId).orElseGet(() -> {
-            MobilityPass newPass = new MobilityPass();
-            newPass.setUserId(userId);
-            newPass.setStatus("ACTIVE");
-            newPass.setDailyCapAmount(2500.0);
-            newPass.setCreatedAt(LocalDateTime.now());
+            MobilityPass newPass = new MobilityPass(userId, "ACTIVE", "STANDARD", 25.0);
             return passRepository.save(newPass);
         });
     }
 
     @Override
-    public void changePassStatus(Long userId, String status) {
-        // CORRECTION : On utilise ton exception au lieu de RuntimeException
+    public void changePassStatus(String userId, String status) {
         MobilityPass pass = passRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pass de mobilité non trouvé pour l'utilisateur : " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("Pass non trouvé pour : " + userId));
         pass.setStatus(status.toUpperCase());
         passRepository.save(pass);
     }
 
-
-
+    @Override
+    public MobilityPass getUserPass(String userId) {
+        return passRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Aucun pass trouvé pour cet utilisateur : " + userId));
+    }
 
     @Override
-    public MobilityPass getPassByUserId(Long userId) {
-        // CORRECTION : Retour direct de l'objet ou erreur 404
-        return passRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Aucun pass trouvé pour cet utilisateur"));
+    public void addSpentAmount(String userId, Double amount) {
+        MobilityPass pass = passRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pass non trouvé"));
+        pass.setTodaySpentAmount(pass.getTodaySpentAmount() + amount);
+        passRepository.save(pass);
     }
 
     @Override
