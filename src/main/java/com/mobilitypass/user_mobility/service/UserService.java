@@ -1,15 +1,17 @@
 package com.mobilitypass.user_mobility.service;
 
-import com.mobilitypass.user_mobility.beans.MobilityPass;
-import com.mobilitypass.user_mobility.beans.User;
-import com.mobilitypass.user_mobility.dto.UserRegistrationDTO;
-import org.springframework.stereotype.Service;
+import com.mobilitypass.user_mobility.beans.UserProfile;
+import com.mobilitypass.user_mobility.dto.UserMobilitySummaryDTO;
+import com.mobilitypass.user_mobility.dto.UserProfileDTO;
 
-import java.util.Optional;
-@Service
+import org.springframework.security.oauth2.jwt.Jwt;
+
 public interface UserService {
-    // Gestion Utilisateur
-    User registerUser(UserRegistrationDTO dto);
-    User getUserById(Long id);    MobilityPass activatePass(Long userId);
-    void changePassStatus(Long userId, String status);
+    UserProfile createProfile(UserProfileDTO dto);
+
+    UserProfile getUser(String keycloakId);
+
+    UserProfile getOrCreateProfile(Jwt jwt);
+
+    UserMobilitySummaryDTO getSummary(String keycloakId);
 }

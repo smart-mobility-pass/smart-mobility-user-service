@@ -1,59 +1,99 @@
 package com.mobilitypass.user_mobility.service;
 
-import com.mobilitypass.user_mobility.beans.MobilityPass;
-import com.mobilitypass.user_mobility.beans.User;
-import com.mobilitypass.user_mobility.dto.UserRegistrationDTO;
+import com.mobilitypass.user_mobility.beans.UserProfile;
+import com.mobilitypass.user_mobility.dto.UserProfileDTO;
 import com.mobilitypass.user_mobility.error.ResourceNotFoundException;
-import com.mobilitypass.user_mobility.repository.MobilityPassRepository;
-import com.mobilitypass.user_mobility.repository.UserRepository;
+import com.mobilitypass.user_mobility.repository.UserProfileRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
+
+import com.mobilitypass.user_mobility.beans.MobilityPass;
+import com.mobilitypass.user_mobility.beans.Subscriptions;
+import com.mobilitypass.user_mobility.dto.UserMobilitySummaryDTO;
+import com.mobilitypass.user_mobility.repository.SubscriptionRepository;
+import org.springframework.security.oauth2.jwt.Jwt;
+
+import java.util.List;
+
+/**
+ * Implémentation du service Utilisateur.
+ * Gère la création des profils métier liés aux identifiants Keycloak.
+ */
 @Service
 @Transactional
 public class UserServiceImpl implements UserService {
     @Autowired
-    private UserRepository userRepository;
+    private UserProfileRepository profileRepository;
 
     @Autowired
-    private MobilityPassRepository passRepository;
+    private PassService passService;
+
+    @Autowired
+    private SubscriptionRepository subRepository;
 
     @Override
-    public User registerUser(UserRegistrationDTO dto) {
-        User user = new User();
-        user.setEmail(dto.getEmail());
-        user.setFirstName(dto.getFirstName());
-        user.setLastName(dto.getLastName());
-        user.setPassword(dto.getPassword());
-        user.setRole("CLIENT");
-        return userRepository.save(user);
+    public UserProfile createProfile(UserProfileDTO dto) {
+        UserProfile profile = UserProfile.builder()
+                .keycloakId(dto.getKeycloakId())
+                .email(dto.getEmail())
+                .firstName(dto.getFirstName())
+                .lastName(dto.getLastName())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        UserProfile savedProfile = profileRepository.save(profile);
+
+        // Auto-activation du pass lors de la création du profil (Standard par défaut)
+        passService.activatePass(savedProfile.getKeycloakId());
+
+        return savedProfile;
     }
 
     @Override
-    public User getUserById(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec l'ID : " + id));
+    public UserProfile getUser(String keycloakId) {
+        return profileRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "UserProfile non trouvé avec l'ID Keycloak : " + keycloakId));
     }
 
     @Override
-    public MobilityPass activatePass(Long userId) {
-        return passRepository.findByUserId(userId).orElseGet(() -> {
-            MobilityPass newPass = new MobilityPass();
-            newPass.setUserId(userId);
-            newPass.setStatus("ACTIVE");
-            newPass.setCreatedAt(LocalDateTime.now());
-            return passRepository.save(newPass);
-        });
+    public UserProfile getOrCreateProfile(Jwt jwt) {
+        String keycloakId = jwt.getSubject();
+        return profileRepository.findByKeycloakId(keycloakId)
+                .orElseGet(() -> {
+                    UserProfileDTO dto = new UserProfileDTO();
+                    dto.setKeycloakId(keycloakId);
+                    dto.setEmail(jwt.getClaimAsString("email"));
+                    dto.setFirstName(jwt.getClaimAsString("given_name"));
+                    dto.setLastName(jwt.getClaimAsString("family_name"));
+                    return createProfile(dto);
+                });
     }
 
     @Override
-    public void changePassStatus(Long userId, String status) {
-        MobilityPass pass = passRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Pass non trouvé"));
-        pass.setStatus(status.toUpperCase());
-        passRepository.save(pass);
+    public UserMobilitySummaryDTO getSummary(String keycloakId) {
+        UserProfile user = getUser(keycloakId);
+        MobilityPass pass = passService.getUserPass(keycloakId);
+        List<Subscriptions> activeSubs = subRepository.findByUserIdAndStatus(keycloakId, "ACTIVE");
+
+        Double discount = activeSubs.stream()
+                .map(Subscriptions::getDiscountPercentage)
+                .findFirst().orElse(0.0);
+
+        return UserMobilitySummaryDTO.builder()
+                .keycloakId(keycloakId)
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .hasActivePass("ACTIVE".equalsIgnoreCase(pass.getStatus()))
+                .passType(pass.getPassType())
+                .passStatus(pass.getStatus())
+                .dailyCap(pass.getDailyCapAmount())
+                .currentSpent(pass.getTodaySpentAmount())
+                .activeDiscountRate(discount)
+                .build();
     }
 }
