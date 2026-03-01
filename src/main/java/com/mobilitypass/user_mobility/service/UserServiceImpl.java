@@ -14,7 +14,7 @@ import com.mobilitypass.user_mobility.beans.MobilityPass;
 import com.mobilitypass.user_mobility.beans.Subscriptions;
 import com.mobilitypass.user_mobility.dto.UserMobilitySummaryDTO;
 import com.mobilitypass.user_mobility.repository.SubscriptionRepository;
-import org.springframework.security.oauth2.jwt.Jwt;
+import com.mobilitypass.user_mobility.repository.SubscriptionRepository;
 
 import com.mobilitypass.user_mobility.proxy.BillingProxy;
 import com.mobilitypass.user_mobility.proxy.BillingProxy.CreateAccountRequest;
@@ -75,15 +75,21 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserProfile getOrCreateProfile(Jwt jwt) {
-        String keycloakId = jwt.getSubject();
-        return profileRepository.findByKeycloakId(keycloakId)
+    public UserProfile getOrCreateProfile(String userId, String email, String name) {
+        return profileRepository.findByKeycloakId(userId)
                 .orElseGet(() -> {
                     UserProfileDTO dto = new UserProfileDTO();
-                    dto.setKeycloakId(keycloakId);
-                    dto.setEmail(jwt.getClaimAsString("email"));
-                    dto.setFirstName(jwt.getClaimAsString("given_name"));
-                    dto.setLastName(jwt.getClaimAsString("family_name"));
+                    dto.setKeycloakId(userId);
+                    dto.setEmail(email);
+
+                    // Split Name (simple version)
+                    if (name != null) {
+                        String[] parts = name.split(" ", 2);
+                        dto.setFirstName(parts[0]);
+                        if (parts.length > 1)
+                            dto.setLastName(parts[1]);
+                    }
+
                     return createProfile(dto);
                 });
     }
@@ -94,7 +100,8 @@ public class UserServiceImpl implements UserService {
         MobilityPass pass = passService.getUserPass(keycloakId);
         List<Subscriptions> activeSubs = subRepository.findByUserIdAndStatus(keycloakId, "ACTIVE");
 
-        /// TODO: Gerer abonnement de type type différent (ex: 20% sur TER, 10% sur BRT, etc.) en fonction du type de pass et des règles métier
+        /// TODO: Gerer abonnement de type type différent (ex: 20% sur TER, 10% sur BRT,
+        /// etc.) en fonction du type de pass et des règles métier
         Double discount = activeSubs.stream()
                 .map(Subscriptions::getDiscountPercentage)
                 .findFirst().orElse(0.0);

@@ -6,8 +6,6 @@ import com.mobilitypass.user_mobility.dto.UserProfileDTO;
 import com.mobilitypass.user_mobility.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -22,8 +20,11 @@ public class UserController {
     private UserService userService;
 
     @GetMapping("/me")
-    public ResponseEntity<UserProfile> getMe(@AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(userService.getOrCreateProfile(jwt));
+    public ResponseEntity<UserProfile> getMe(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestHeader(value = "X-User-Email", required = false) String email,
+            @RequestHeader(value = "X-User-Name", required = false) String name) {
+        return ResponseEntity.ok(userService.getOrCreateProfile(userId, email, name));
     }
 
     @GetMapping("/summary/{keycloakId}")
