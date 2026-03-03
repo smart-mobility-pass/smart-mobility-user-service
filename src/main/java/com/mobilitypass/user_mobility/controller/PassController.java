@@ -1,6 +1,7 @@
 package com.mobilitypass.user_mobility.controller;
 
 import com.mobilitypass.user_mobility.beans.MobilityPass;
+import com.mobilitypass.user_mobility.enums.PassStatus;
 import com.mobilitypass.user_mobility.service.PassService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,7 +59,7 @@ public class PassController {
     @PatchMapping("/me/status")
     public ResponseEntity<Void> updateMyStatus(
             @RequestHeader("X-User-Id") String userId,
-            @RequestParam String status) {
+            @RequestParam PassStatus status) {
         passService.changePassStatus(userId, status);
         return ResponseEntity.noContent().build();
     }
@@ -104,7 +105,7 @@ public class PassController {
     @PatchMapping("/{userId}/status")
     public ResponseEntity<Void> updateStatus(
             @PathVariable String userId,
-            @RequestParam String status) {
+            @RequestParam PassStatus status) {
         passService.changePassStatus(userId, status);
         return ResponseEntity.noContent().build();
     }
