@@ -12,7 +12,5 @@ public interface PassService {
 
     MobilityPass getUserPass(String userId);
 
-    void addSpentAmount(String userId, Double amount);
-
     List<MobilityPass> getAllPasses();
 }

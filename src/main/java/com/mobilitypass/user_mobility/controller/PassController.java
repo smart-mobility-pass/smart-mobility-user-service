@@ -64,17 +64,6 @@ public class PassController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Ajoute un montant consommé au pass de l'utilisateur courant.
-     */
-    @PatchMapping("/me/spent")
-    public ResponseEntity<Void> addMySpent(
-            @RequestHeader("X-User-Id") String userId,
-            @RequestParam Double amount) {
-        passService.addSpentAmount(userId, amount);
-        return ResponseEntity.noContent().build();
-    }
-
     // =========================================================================
     // Endpoints inter-services — accessibles par keycloakId (usage interne)
     // Appelés par d'autres microservices via Feign (trip-management, billing…)
@@ -107,19 +96,6 @@ public class PassController {
             @PathVariable String userId,
             @RequestParam PassStatus status) {
         passService.changePassStatus(userId, status);
-        return ResponseEntity.noContent().build();
-    }
-
-    /**
-     * Ajoute un montant consommé au pass par Keycloak ID.
-     * Usage inter-services (appelé par trip-management après validation d'un
-     * trajet).
-     */
-    @PatchMapping("/{userId}/spent")
-    public ResponseEntity<Void> updateSpent(
-            @PathVariable String userId,
-            @RequestParam Double amount) {
-        passService.addSpentAmount(userId, amount);
         return ResponseEntity.noContent().build();
     }
 }

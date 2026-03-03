@@ -11,6 +11,5 @@ public class PricingContextDTO {
     private boolean hasActivePass;
     private PassType passType;
     private Double dailyCapAmount;
-    private Double todaySpentAmount;
     private List<SubscriptionContextDTO> activeSubscriptions;
 }

@@ -30,7 +30,6 @@ public class MobilityPass {
     @Enumerated(EnumType.STRING)
     private PassType passType; // STANDARD, PREMIUM
     private Double dailyCapAmount;
-    private Double todaySpentAmount;
     private LocalDate capResetDate;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
@@ -41,7 +40,6 @@ public class MobilityPass {
         this.status = status;
         this.passType = passType;
         this.dailyCapAmount = dailyCapAmount;
-        this.todaySpentAmount = 0.0;
         this.capResetDate = LocalDate.now();
         this.startDate = LocalDateTime.now();
         this.endDate = LocalDateTime.now().plusYears(1); // Défaut 1 an

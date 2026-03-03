@@ -45,14 +45,6 @@ public class PassServiceImpl implements PassService {
     }
 
     @Override
-    public void addSpentAmount(String userId, Double amount) {
-        MobilityPass pass = passRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pass non trouvé"));
-        pass.setTodaySpentAmount(pass.getTodaySpentAmount() + amount);
-        passRepository.save(pass);
-    }
-
-    @Override
     public List<MobilityPass> getAllPasses() {
         return passRepository.findAll();
     }

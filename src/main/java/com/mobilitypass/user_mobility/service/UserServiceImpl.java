@@ -134,7 +134,6 @@ public class UserServiceImpl implements UserService {
                 .passType(pass.getPassType())
                 .passStatus(pass.getStatus())
                 .dailyCap(pass.getDailyCapAmount())
-                .currentSpent(pass.getTodaySpentAmount())
                 .activeSubscriptions(subscriptionDTOs)
                 .build();
     }
@@ -155,7 +154,6 @@ public class UserServiceImpl implements UserService {
                 .hasActivePass(PassStatus.ACTIVE.equals(pass.getStatus()))
                 .passType(pass.getPassType())
                 .dailyCapAmount(pass.getDailyCapAmount())
-                .todaySpentAmount(pass.getTodaySpentAmount())
                 .activeSubscriptions(subscriptionContexts)
                 .build();
     }
