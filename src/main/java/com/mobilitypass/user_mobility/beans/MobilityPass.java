@@ -1,9 +1,8 @@
 package com.mobilitypass.user_mobility.beans;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.mobilitypass.user_mobility.enums.PassStatus;
+import com.mobilitypass.user_mobility.enums.PassType;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,9 +23,12 @@ public class MobilityPass {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private Long offerId; // Link to Catalog (PassOffer)
     private String userId; // keycloakId
-    private String status; // ACTIVE, SUSPENDED
-    private String passType; // STANDARD, PREMIUM
+    @Enumerated(EnumType.STRING)
+    private PassStatus status;// ACTIVE, SUSPENDED
+    @Enumerated(EnumType.STRING)
+    private PassType passType; // STANDARD, PREMIUM
     private Double dailyCapAmount;
     private Double todaySpentAmount;
     private LocalDate capResetDate;
@@ -34,7 +36,7 @@ public class MobilityPass {
     private LocalDateTime endDate;
     private LocalDateTime createdAt;
 
-    public MobilityPass(String userId, String status, String passType, Double dailyCapAmount) {
+    public MobilityPass(String userId, PassStatus status, PassType passType, Double dailyCapAmount) {
         this.userId = userId;
         this.status = status;
         this.passType = passType;

@@ -20,6 +20,7 @@ public class Subscriptions {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private Long offerId; // Link to Catalog (SubscriptionOffer)
     private String userId; // keycloakId
     private String subscriptionType;
     private String applicableTransport;
