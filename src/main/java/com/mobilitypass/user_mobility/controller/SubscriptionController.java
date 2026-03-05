@@ -8,6 +8,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.mobilitypass.user_mobility.proxy.BillingProxy;
+import com.mobilitypass.user_mobility.repository.SubscriptionOfferRepository;
+import com.mobilitypass.user_mobility.repository.SubscriptionRepository;
+import com.mobilitypass.user_mobility.beans.SubscriptionOffer;
+
 import java.util.List;
 
 /**
@@ -26,6 +31,9 @@ import java.util.List;
 public class SubscriptionController {
 
     private final SubscriptionService subscriptionService;
+    private final BillingProxy billingProxy;
+    private final SubscriptionOfferRepository subscriptionOfferRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
     // =========================================================================
     // Endpoints "mes abonnements" — lus depuis le header X-User-Id (Gateway)
@@ -61,6 +69,40 @@ public class SubscriptionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
+    /**
+     * Achète une offre d'abonnement du catalogue pour l'utilisateur courant.
+     * Débite le compte via BillingProxy puis crée l'abonnement en base.
+     */
+    @PostMapping("/me/buy/{offerId}")
+    public ResponseEntity<Subscriptions> buySubscription(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable Long offerId) {
+        log.info("Achat d'abonnement → userId: {}, offerId: {}", userId, offerId);
+
+        SubscriptionOffer offer = subscriptionOfferRepository.findById(offerId)
+                .orElseThrow(() -> new RuntimeException("Subscription offer not found: " + offerId));
+
+        try {
+            billingProxy.charge(userId, new com.mobilitypass.user_mobility.proxy.BillingProxy.ChargeRequest(offer.getPrice(), "Purchase subscription: " + offer.getName()));
+        } catch (Exception ex) {
+            log.warn("Billing charge failed for userId={}, offerId={}: {}", userId, offerId, ex.getMessage());
+            return ResponseEntity.status(402).build();
+        }
+
+        Subscriptions sub = new Subscriptions();
+        sub.setUserId(userId);
+        sub.setSubscriptionType(offer.getSubscriptionType().name());
+        sub.setDiscountPercentage(offer.getDiscountPercentage());
+        sub.setStartDate(java.time.LocalDateTime.now());
+        sub.setEndDate(java.time.LocalDateTime.now().plusDays(offer.getValidityDays()));
+        sub.setStatus("ACTIVE");
+        sub.setApplicableTransport(offer.getApplicableTransport().name());
+        sub.setOfferId(offer.getId());
+
+        Subscriptions saved = subscriptionRepository.save(sub);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
     // =========================================================================
     // Endpoints inter-services — accessibles par keycloakId (usage interne)
     // =========================================================================
@@ -77,7 +119,7 @@ public class SubscriptionController {
 
     /**
      * Crée un abonnement pour un utilisateur via son Keycloak ID.
-     * Usage backoffice / admin.
+     * Usage : backoffice / admin.
      */
     @PostMapping
     public ResponseEntity<Subscriptions> create(@RequestBody Subscriptions sub) {

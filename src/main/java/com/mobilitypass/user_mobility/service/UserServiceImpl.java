@@ -61,7 +61,7 @@ public class UserServiceImpl implements UserService {
         UserProfile savedProfile = profileRepository.save(profile);
 
         // Auto-activation du pass lors de la création du profil (Standard par défaut)
-        passService.activatePass(savedProfile.getKeycloakId());
+        // Note: removed automatic pass activation. Passes must be purchased from the catalog.
 
         // Créer le compte facturation via API Synchrone
         try {

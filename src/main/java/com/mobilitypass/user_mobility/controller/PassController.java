@@ -8,6 +8,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.mobilitypass.user_mobility.proxy.BillingProxy;
+import com.mobilitypass.user_mobility.repository.PassOfferRepository;
+import com.mobilitypass.user_mobility.beans.PassOffer;
+
+import java.util.Optional;
+
 /**
  * Contrôleur pour la gestion des passes de mobilité.
  *
@@ -28,6 +34,8 @@ import org.springframework.web.bind.annotation.*;
 public class PassController {
 
     private final PassService passService;
+    private final BillingProxy billingProxy;
+    private final PassOfferRepository passOfferRepository;
 
     // =========================================================================
     // Endpoints "mon pass" — lus depuis le header X-User-Id (Gateway)
@@ -54,6 +62,32 @@ public class PassController {
     }
 
     /**
+     * Achète un pass du catalogue pour l'utilisateur courant :
+     * 1) débite le compte via BillingProxy
+     * 2) crée/active le pass basé sur l'offre
+     */
+    @PostMapping("/me/buy/{offerId}")
+    public ResponseEntity<MobilityPass> buyPass(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable Long offerId) {
+        log.info("Achat de pass → userId: {}, offerId: {}", userId, offerId);
+
+        PassOffer offer = passOfferRepository.findById(offerId)
+                .orElseThrow(() -> new RuntimeException("Pass offer not found: " + offerId));
+
+        // Appel au service de facturation (synchronous charge)
+        try {
+            billingProxy.charge(userId, new com.mobilitypass.user_mobility.proxy.BillingProxy.ChargeRequest(offer.getPrice(), "Purchase pass: " + offer.getName()));
+        } catch (Exception ex) {
+            log.warn("Billing charge failed for userId={}, offerId={}: {}", userId, offerId, ex.getMessage());
+            return ResponseEntity.status(402).build(); // Payment Required
+        }
+
+        MobilityPass pass = passService.activatePassFromOffer(userId, offerId);
+        return ResponseEntity.ok(pass);
+    }
+
+    /**
      * Met à jour le statut du pass de l'utilisateur courant.
      */
     @PatchMapping("/me/status")
@@ -66,7 +100,6 @@ public class PassController {
 
     // =========================================================================
     // Endpoints inter-services — accessibles par keycloakId (usage interne)
-    // Appelés par d'autres microservices via Feign (trip-management, billing…)
     // =========================================================================
 
     /**
