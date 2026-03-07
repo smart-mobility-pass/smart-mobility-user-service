@@ -36,8 +36,10 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private UserProfileRepository profileRepository;
 
+    // passService not required here; pass lookup done via MobilityPassRepository
+
     @Autowired
-    private PassService passService;
+    private com.mobilitypass.user_mobility.repository.MobilityPassRepository passRepository;
 
     @Autowired
     private SubscriptionRepository subRepository;
@@ -61,7 +63,8 @@ public class UserServiceImpl implements UserService {
         UserProfile savedProfile = profileRepository.save(profile);
 
         // Auto-activation du pass lors de la création du profil (Standard par défaut)
-        // Note: removed automatic pass activation. Passes must be purchased from the catalog.
+        // Note: removed automatic pass activation. Passes must be purchased from the
+        // catalog.
 
         // Créer le compte facturation via API Synchrone
         try {
@@ -105,7 +108,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserMobilitySummaryDTO getSummary(String keycloakId) {
         UserProfile user = getUser(keycloakId);
-        MobilityPass pass = passService.getUserPass(keycloakId);
+        MobilityPass pass = passRepository.findByUserId(keycloakId).orElse(null);
         List<Subscriptions> activeSubs = subRepository.findByUserIdAndStatus(keycloakId, "ACTIVE");
 
         List<ActiveSubscriptionDTO> subscriptionDTOs = activeSubs.stream()
@@ -130,17 +133,17 @@ public class UserServiceImpl implements UserService {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .email(user.getEmail())
-                .hasActivePass(PassStatus.ACTIVE.equals(pass.getStatus()))
-                .passType(pass.getPassType())
-                .passStatus(pass.getStatus())
-                .dailyCap(pass.getDailyCapAmount())
+                .hasActivePass(pass != null && PassStatus.ACTIVE.equals(pass.getStatus()))
+                .passType(pass != null ? pass.getPassType() : null)
+                .passStatus(pass != null ? pass.getStatus() : null)
+                .dailyCap(pass != null ? pass.getDailyCapAmount() : null)
                 .activeSubscriptions(subscriptionDTOs)
                 .build();
     }
 
     @Override
     public PricingContextDTO getPricingContext(String userId) {
-        MobilityPass pass = passService.getUserPass(userId);
+        MobilityPass pass = passRepository.findByUserId(userId).orElse(null);
         List<Subscriptions> activeSubs = subRepository.findByUserIdAndStatus(userId, "ACTIVE");
 
         List<SubscriptionContextDTO> subscriptionContexts = activeSubs.stream()
@@ -151,9 +154,9 @@ public class UserServiceImpl implements UserService {
                 .toList();
 
         return PricingContextDTO.builder()
-                .hasActivePass(PassStatus.ACTIVE.equals(pass.getStatus()))
-                .passType(pass.getPassType())
-                .dailyCapAmount(pass.getDailyCapAmount())
+                .hasActivePass(pass != null && PassStatus.ACTIVE.equals(pass.getStatus()))
+                .passType(pass != null ? pass.getPassType() : null)
+                .dailyCapAmount(pass != null ? pass.getDailyCapAmount() : null)
                 .activeSubscriptions(subscriptionContexts)
                 .build();
     }

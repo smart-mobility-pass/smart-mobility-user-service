@@ -11,8 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import com.mobilitypass.user_mobility.proxy.BillingProxy;
 import com.mobilitypass.user_mobility.repository.PassOfferRepository;
 import com.mobilitypass.user_mobility.beans.PassOffer;
-
-import java.util.Optional;
+import com.mobilitypass.user_mobility.repository.MobilityPassRepository;
 
 /**
  * Contrôleur pour la gestion des passes de mobilité.
@@ -36,6 +35,7 @@ public class PassController {
     private final PassService passService;
     private final BillingProxy billingProxy;
     private final PassOfferRepository passOfferRepository;
+    private final MobilityPassRepository passRepository;
 
     // =========================================================================
     // Endpoints "mon pass" — lus depuis le header X-User-Id (Gateway)
@@ -48,7 +48,9 @@ public class PassController {
     public ResponseEntity<MobilityPass> getMyPass(
             @RequestHeader("X-User-Id") String userId) {
         log.debug("Récupération du pass → userId: {}", userId);
-        return ResponseEntity.ok(passService.getUserPass(userId));
+        return passRepository.findByUserId(userId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     /**
@@ -108,7 +110,9 @@ public class PassController {
      */
     @GetMapping("/{userId}")
     public ResponseEntity<MobilityPass> getPass(@PathVariable String userId) {
-        return ResponseEntity.ok(passService.getUserPass(userId));
+        return passRepository.findByUserId(userId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     /**
